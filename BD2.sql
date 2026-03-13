@@ -1,51 +1,85 @@
-CREATE TABLE movies (
-    id SERIAL PRIMARY KEY,
-    title VARCHAR(150) NOT NULL,
-    genre VARCHAR(50),
-    duration_min INT CHECK (duration_min > 0),
-    ticket_price NUMERIC(10, 2) DEFAULT 0.00,
-    rating VARCHAR(10),
-    is_3d BOOLEAN DEFAULT FALSE,
-    release_date DATE
-);
+-- CREATE TABLE books (
+-- 	id SERIAL PRIMARY KEY,
+-- 	title VARCHAR(150) NOT NULL,
+-- 	price NUMERIC(10, 2)
+-- );
 
-INSERT INTO movies (title, genre, duration_min, ticket_price, rating, is_3d, release_date) VALUES
-('Интерстеллар', 'Фантастика', 169, 500.00, '12+', FALSE, '2014-11-06'),
-('Бегущий по лезвию 2049', 'Фантастика', 164, 600.00, '16+', TRUE, '2017-10-05'),
-('Мстители: Финал', 'Боевик', 181, 700.00, '12+', TRUE, '2019-04-24'),
-('Король Лев', 'Мультфильм', 118, 350.00, '0+', FALSE, '2019-07-19'),
-('Пираты Карибского моря', 'Боевик', 143, 550.00, '12+', FALSE, '2003-07-09'),
-('Тайна Коко', 'Мультфильм', 105, 400.00, '0+', FALSE, '2017-11-22');
+-- CREATE TABLE categories (
+-- 	id SERIAL PRIMARY KEY,
+-- 	name VARCHAR(50) UNIQUE NOT NULL
+-- );
 
-UPDATE movies
-SET ticket_price = ticket_price + 50
-WHERE genre = 'Фантастика';
+-- CREATE TABLE books_categories(
+-- 	book_id INTEGER REFERENCES books(id) ON DELETE CASCADE,
+-- 	category_id INTEGER REFERENCES categories(id) ON DELETE CASCADE,
+-- 	added_at TIMESTAMPTZ DEFAULT CURRENT_DATE,
+-- 	PRIMARY KEY(book_id, category_id)
+-- );
 
-DELETE FROM movies WHERE id = 3;
+-- INSERT INTO categories (name)
+-- VALUES 
+-- ('Фантастика'), ('Роман'), ('Психология'), ('Бизнес'), ('Программирование'), 
+-- ('История'), ('Триллер'), ('Детское'), ('Классика');
 
-UPDATE movies
-SET rating = '16+'
-WHERE title = 'Интерстеллар';
+-- INSERT INTO books(title, price)
+-- VALUES
+-- ('Дворец ледяных сердец', 299), ('Гарри Поттер и Филосовский камень', 900),
+-- ('Мертвая зона', 600), ('Четыре сезона', 300),
+-- ('Война и Мир', 450), ('Граф Монте-Кристо', 299),
+-- ('Оно', 560), ('Евгений Онегин', 800),
+-- ('Девятый', 600), ('Вариация', 340);
 
-SELECT title, ticket_price
-FROM movies
-WHERE duration_min > 120;
+-- INSERT INTO books_categories(book_id, category_id)
+-- VALUES
+-- (1, 2),
+-- (1, 3),
+-- (2, 4),
+-- (2, 3),
+-- (3, 5),
+-- (3, 6),
+-- (4, 5),
+-- (5, 5),
+-- (6, 5),
+-- (7, 8),
+-- (8, 1),
+-- (9, 7),
+-- (10, 9);
 
-SELECT title, ticket_price
-FROM movies
-ORDER BY ticket_price ASC;
+SELECT 
+	b.title,
+	c.name
+FROM books b
+JOIN books_categories bc ON b.id = bc.book_id
+JOIN categories c ON c.id = bc.category_id;
 
-SELECT COUNT(*) AS total_films
-FROM movies;
+SELECT 
+	b.title AS book,
+	c.name AS genre
+FROM books b
+JOIN books_categories bc ON b.id = bc.book_id
+JOIN categories c ON c.id = bc.category_id
+WHERE c.name = 'Программирование';
 
-SELECT AVG(ticket_price) AS avg_price
-FROM movies;
-
-SELECT genre, COUNT(*) AS count_per_genre
-FROM movies
+SELECT 
+	c.name AS genre,
+	COUNT(*)
+FROM categories c
+JOIN books_categories bc ON bc.category_id = c.id
 GROUP BY genre;
 
-SELECT genre, AVG(ticket_price) AS avg_price
-FROM movies
-GROUP BY genre
-HAVING AVG(ticket_price) > 350;
+SELECT 
+	c.name AS genre,
+	AVG(b.price) AS avg
+FROM categories c
+JOIN books_categories bc ON bc.category_id = c.id
+JOIN books b ON bc.book_id = b.id
+GROUP BY genre;
+
+SELECT 
+	b.title AS book,
+	COUNT(*) AS total_genre
+FROM books b
+JOIN books_categories bc ON bc.book_id = b.id
+JOIN categories c ON bc.category_id = c.id
+GROUP BY book
+HAVING COUNT(*) > 1;
