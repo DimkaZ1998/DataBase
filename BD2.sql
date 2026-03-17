@@ -1,51 +1,163 @@
-CREATE TABLE movies (
-    id SERIAL PRIMARY KEY,
-    title VARCHAR(150) NOT NULL,
-    genre VARCHAR(50),
-    duration_min INT CHECK (duration_min > 0),
-    ticket_price NUMERIC(10, 2) DEFAULT 0.00,
-    rating VARCHAR(10),
-    is_3d BOOLEAN DEFAULT FALSE,
-    release_date DATE
+CREATE TABLE restaurants (
+id SERIAL PRIMARY KEY,
+name VARCHAR(100) NOT NULL,
+address TEXT,
+rating NUMERIC(2,1) CHECK (rating>1.0 AND rating<=5.0),
+category VARCHAR(50)
 );
 
-INSERT INTO movies (title, genre, duration_min, ticket_price, rating, is_3d, release_date) VALUES
-('Интерстеллар', 'Фантастика', 169, 500.00, '12+', FALSE, '2014-11-06'),
-('Бегущий по лезвию 2049', 'Фантастика', 164, 600.00, '16+', TRUE, '2017-10-05'),
-('Мстители: Финал', 'Боевик', 181, 700.00, '12+', TRUE, '2019-04-24'),
-('Король Лев', 'Мультфильм', 118, 350.00, '0+', FALSE, '2019-07-19'),
-('Пираты Карибского моря', 'Боевик', 143, 550.00, '12+', FALSE, '2003-07-09'),
-('Тайна Коко', 'Мультфильм', 105, 400.00, '0+', FALSE, '2017-11-22');
+CREATE TABLE menu_items (
+id SERIAL PRIMARY KEY,
+restaurant_id INTEGER REFERENCES restaurants(id) ON DELETE CASCADE,
+item_name VARCHAR(100) NOT NULL,
+price NUMERIC(10,2) NOT NULL CHECK (price > 0),
+is_available BOOLEAN DEFAULT TRUE
+);
 
-UPDATE movies
-SET ticket_price = ticket_price + 50
-WHERE genre = 'Фантастика';
+CREATE TABLE customers (
+id SERIAL PRIMARY KEY,
+full_name VARCHAR(100) NOT NULL,
+email VARCHAR(100) UNIQUE NOT NULL,
+registrarion_date DATE DEFAULT CURRENT_DATE
+);
 
-DELETE FROM movies WHERE id = 3;
+CREATE TABLE orders(
+id SERIAL PRIMARY KEY,
+customer_id INTEGER REFERENCES customers(id) ON DELETE CASCADE,
+order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+status VARCHAR(20) DEFAULT 'Принят'
+);
 
-UPDATE movies
-SET rating = '16+'
-WHERE title = 'Интерстеллар';
+CREATE TABLE order_items (
+order_id INTEGER REFERENCES customers(id) ON DELETE CASCADE,
+item_id INTEGER REFERENCES menu_items(id) ON DELETE CASCADE,
+quantity INTEGER NOT NULL CHECK (quantity > 0),
+PRIMARY KEY (order_id, item_id)
+);
 
-SELECT title, ticket_price
-FROM movies
-WHERE duration_min > 120;
 
-SELECT title, ticket_price
-FROM movies
-ORDER BY ticket_price ASC;
+INSERT INTO restaurants(title, address, category, rating)
+VALUES
+('Крошка Картошка', 'г. Брянск, ул. Малинина, д. 16', 'Русская', 4.5),
+('Итальянский рай', 'г. Брянск, ул. Краснова, д. 1', 'Итальянская', 4.0),
+('Вкус Востока', 'г. Брянск, ул. Московская, д. 2', 'Восточная', 5.0),
+('China Club', 'г. Брянск, ул. Калинина, д. 34', 'Китайская', 4.5),
+('Burger Bar', 'г. Брянск, ул. Малинина, д. 16', 'Американская', 3.8);
 
-SELECT COUNT(*) AS total_films
-FROM movies;
+INSERT INTO menu_items(item_name, restaurant_id, price, is_available)
+VALUES
+-- 'Итальянский рай'
+('Пицца Пеперони', 2, 800, TRUE),
+('Лазанья', 2, 1200, TRUE),
+('Пицца Маргаритта', 2, 900, TRUE),
+('Паста Карбонара', 2, 1300, FALSE),
 
-SELECT AVG(ticket_price) AS avg_price
-FROM movies;
+-- Крошка Картошка
+('Картошка со сливочным маслом', 1, 350, TRUE),
+('Печеный Мэш', 1, 240, TRUE),
+('Щи из квашеной капустой', 1, 150, FALSE),
+('Суп гороховый', 1, 300, TRUE),
 
-SELECT genre, COUNT(*) AS count_per_genre
-FROM movies
-GROUP BY genre;
+-- Вкус Востока
+('Плов', 3, 400, TRUE),
+('Манты', 3, 200, TRUE),
+('Чак-Чак', 3, 600, FALSE),
+('Арахисовая халва', 3, 300, TRUE),
 
-SELECT genre, AVG(ticket_price) AS avg_price
-FROM movies
-GROUP BY genre
-HAVING AVG(ticket_price) > 350;
+-- China Club
+('Утка по-Пекински', 4, 1000, TRUE),
+('Курица гунбао', 4, 500, TRUE),
+('Мапо тофу ', 4, 300, TRUE),
+('Чаофань ', 4, 259, FALSE),
+
+-- Burger Club
+('Чикенбургер', 5, 70, TRUE),
+('Двойной чикенбургер', 5, 150, TRUE),
+('Бифштекс-Бургер', 5, 280, TRUE),
+('Фишбургер', 5, 89, FALSE);
+
+INSERT INTO customers(full_name, email, registtration_date)
+VALUES
+('Кирюхин Александр Петрович', 'KAP@mail.com', '2020-09-22'),
+('Кирюхина Наталья Владимировна', 'KNV@mail.com', '2021-11-11'),
+('Азарова Мария Федоровна', 'AMI@mail.com', '2025-01-19'),
+('Азаров Михаил Иванович', 'AMI', CURRENT_DATE),
+('Захарова Татьяна Александровна', 'ZTA@mail.com', '2026-02-14');
+('Захаров Юрий Викторович', 'ZUV@mail.com', '2023-12-19'),
+('Захарова Наталия Михайловна', 'ZNT@mail.com', '2017-01-15'),
+('Захаров Дмитрий Юрьевич', 'ZDU@mail.com', CURRENT_DATE);
+
+INSERT INTO orders (customer_id, order_date, status)
+VALUES
+(1, '2026-03-06', 'Принят'),
+(2, '2026-03-06', 'Принят'),
+(3, '2026-03-07', 'Принят');
+(5, '2026-02-16', 'Доставлен'),
+(6, '2020-03-01', 'Доставлен'),
+(7, '2018-03-10', 'Доставлен'),
+(8, '2026-03-06', 'Доставлен');
+
+INSERT INTO order_items(order_id, item_id, quantity)
+VALUES
+(1, 1, 1),
+(1, 2, 2),
+(2, 1, 10),
+(2, 4, 6),
+(2, 3, 9),
+(3, 12, 2),
+(3, 11, 1),
+(3, 10, 12),
+(4, 17, 2),
+(5, 19, 1),
+(5, 9, 1),
+(6, 1, 2),
+(6, 8, 1),
+(7, 18, 3),
+(2, 11, 11),
+(4, 19, 1),
+(4, 2, 4);
+(8, 1, 4);
+SELECT
+	c.full_name,
+	r.title,
+	o.order_date
+FROM customers c
+JOIN orders o ON o.customer_id = c.id
+JOIN order_items oi ON oi.order_id = o.id
+JOIN menu_items m ON m.id = oi.item_id
+JOIN restaurants r ON r.id = m.restaurant_id;
+
+SELECT 
+	o.id AS order_id,
+	m.item_name AS item,
+	m.price * oi.quantity AS price_to_item
+FROM orders o
+JOIN order_items oi ON oi.order_id = o.id
+JOIN menu_items m ON m.id = oi.item_id;
+
+SELECT 
+	c.full_name AS client,
+	COUNT(*) AS total_orders
+FROM customers c
+JOIN orders o ON c.id = o.customer_id
+GROUP BY c.full_name
+ORDER BY total_orders DESC
+LIMIT(1);
+
+SELECT 
+	r.title,
+	SUM(m.price * oi.quantity) AS revenue
+FROM restaurants r
+JOIN menu_items m ON m.restaurant_id = r.id
+JOIN order_items oi ON oi.item_id = m.id
+GROUP BY r.title
+
+
+SELECT 
+	r.title, 
+	AVG(m.price * oi.quantity) AS average_check
+FROM restaurants r
+JOIN menu_items m ON m.restaurant_id = r.id
+JOIN order_items oi ON oi.item_id = m.id
+GROUP BY title
+HAVING AVG(m.price * oi.quantity) >= 500.00;
