@@ -1,85 +1,163 @@
--- CREATE TABLE books (
--- 	id SERIAL PRIMARY KEY,
--- 	title VARCHAR(150) NOT NULL,
--- 	price NUMERIC(10, 2)
--- );
+CREATE TABLE restaurants (
+id SERIAL PRIMARY KEY,
+name VARCHAR(100) NOT NULL,
+address TEXT,
+rating NUMERIC(2,1) CHECK (rating>1.0 AND rating<=5.0),
+category VARCHAR(50)
+);
 
--- CREATE TABLE categories (
--- 	id SERIAL PRIMARY KEY,
--- 	name VARCHAR(50) UNIQUE NOT NULL
--- );
+CREATE TABLE menu_items (
+id SERIAL PRIMARY KEY,
+restaurant_id INTEGER REFERENCES restaurants(id) ON DELETE CASCADE,
+item_name VARCHAR(100) NOT NULL,
+price NUMERIC(10,2) NOT NULL CHECK (price > 0),
+is_available BOOLEAN DEFAULT TRUE
+);
 
--- CREATE TABLE books_categories(
--- 	book_id INTEGER REFERENCES books(id) ON DELETE CASCADE,
--- 	category_id INTEGER REFERENCES categories(id) ON DELETE CASCADE,
--- 	added_at TIMESTAMPTZ DEFAULT CURRENT_DATE,
--- 	PRIMARY KEY(book_id, category_id)
--- );
+CREATE TABLE customers (
+id SERIAL PRIMARY KEY,
+full_name VARCHAR(100) NOT NULL,
+email VARCHAR(100) UNIQUE NOT NULL,
+registrarion_date DATE DEFAULT CURRENT_DATE
+);
 
--- INSERT INTO categories (name)
--- VALUES 
--- ('Фантастика'), ('Роман'), ('Психология'), ('Бизнес'), ('Программирование'), 
--- ('История'), ('Триллер'), ('Детское'), ('Классика');
+CREATE TABLE orders(
+id SERIAL PRIMARY KEY,
+customer_id INTEGER REFERENCES customers(id) ON DELETE CASCADE,
+order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+status VARCHAR(20) DEFAULT 'Принят'
+);
 
--- INSERT INTO books(title, price)
--- VALUES
--- ('Дворец ледяных сердец', 299), ('Гарри Поттер и Филосовский камень', 900),
--- ('Мертвая зона', 600), ('Четыре сезона', 300),
--- ('Война и Мир', 450), ('Граф Монте-Кристо', 299),
--- ('Оно', 560), ('Евгений Онегин', 800),
--- ('Девятый', 600), ('Вариация', 340);
+CREATE TABLE order_items (
+order_id INTEGER REFERENCES customers(id) ON DELETE CASCADE,
+item_id INTEGER REFERENCES menu_items(id) ON DELETE CASCADE,
+quantity INTEGER NOT NULL CHECK (quantity > 0),
+PRIMARY KEY (order_id, item_id)
+);
 
--- INSERT INTO books_categories(book_id, category_id)
--- VALUES
--- (1, 2),
--- (1, 3),
--- (2, 4),
--- (2, 3),
--- (3, 5),
--- (3, 6),
--- (4, 5),
--- (5, 5),
--- (6, 5),
--- (7, 8),
--- (8, 1),
--- (9, 7),
--- (10, 9);
+
+INSERT INTO restaurants(title, address, category, rating)
+VALUES
+('Крошка Картошка', 'г. Брянск, ул. Малинина, д. 16', 'Русская', 4.5),
+('Итальянский рай', 'г. Брянск, ул. Краснова, д. 1', 'Итальянская', 4.0),
+('Вкус Востока', 'г. Брянск, ул. Московская, д. 2', 'Восточная', 5.0),
+('China Club', 'г. Брянск, ул. Калинина, д. 34', 'Китайская', 4.5),
+('Burger Bar', 'г. Брянск, ул. Малинина, д. 16', 'Американская', 3.8);
+
+INSERT INTO menu_items(item_name, restaurant_id, price, is_available)
+VALUES
+-- 'Итальянский рай'
+('Пицца Пеперони', 2, 800, TRUE),
+('Лазанья', 2, 1200, TRUE),
+('Пицца Маргаритта', 2, 900, TRUE),
+('Паста Карбонара', 2, 1300, FALSE),
+
+-- Крошка Картошка
+('Картошка со сливочным маслом', 1, 350, TRUE),
+('Печеный Мэш', 1, 240, TRUE),
+('Щи из квашеной капустой', 1, 150, FALSE),
+('Суп гороховый', 1, 300, TRUE),
+
+-- Вкус Востока
+('Плов', 3, 400, TRUE),
+('Манты', 3, 200, TRUE),
+('Чак-Чак', 3, 600, FALSE),
+('Арахисовая халва', 3, 300, TRUE),
+
+-- China Club
+('Утка по-Пекински', 4, 1000, TRUE),
+('Курица гунбао', 4, 500, TRUE),
+('Мапо тофу ', 4, 300, TRUE),
+('Чаофань ', 4, 259, FALSE),
+
+-- Burger Club
+('Чикенбургер', 5, 70, TRUE),
+('Двойной чикенбургер', 5, 150, TRUE),
+('Бифштекс-Бургер', 5, 280, TRUE),
+('Фишбургер', 5, 89, FALSE);
+
+INSERT INTO customers(full_name, email, registtration_date)
+VALUES
+('Кирюхин Александр Петрович', 'KAP@mail.com', '2020-09-22'),
+('Кирюхина Наталья Владимировна', 'KNV@mail.com', '2021-11-11'),
+('Азарова Мария Федоровна', 'AMI@mail.com', '2025-01-19'),
+('Азаров Михаил Иванович', 'AMI', CURRENT_DATE),
+('Захарова Татьяна Александровна', 'ZTA@mail.com', '2026-02-14');
+('Захаров Юрий Викторович', 'ZUV@mail.com', '2023-12-19'),
+('Захарова Наталия Михайловна', 'ZNT@mail.com', '2017-01-15'),
+('Захаров Дмитрий Юрьевич', 'ZDU@mail.com', CURRENT_DATE);
+
+INSERT INTO orders (customer_id, order_date, status)
+VALUES
+(1, '2026-03-06', 'Принят'),
+(2, '2026-03-06', 'Принят'),
+(3, '2026-03-07', 'Принят');
+(5, '2026-02-16', 'Доставлен'),
+(6, '2020-03-01', 'Доставлен'),
+(7, '2018-03-10', 'Доставлен'),
+(8, '2026-03-06', 'Доставлен');
+
+INSERT INTO order_items(order_id, item_id, quantity)
+VALUES
+(1, 1, 1),
+(1, 2, 2),
+(2, 1, 10),
+(2, 4, 6),
+(2, 3, 9),
+(3, 12, 2),
+(3, 11, 1),
+(3, 10, 12),
+(4, 17, 2),
+(5, 19, 1),
+(5, 9, 1),
+(6, 1, 2),
+(6, 8, 1),
+(7, 18, 3),
+(2, 11, 11),
+(4, 19, 1),
+(4, 2, 4);
+(8, 1, 4);
+SELECT
+	c.full_name,
+	r.title,
+	o.order_date
+FROM customers c
+JOIN orders o ON o.customer_id = c.id
+JOIN order_items oi ON oi.order_id = o.id
+JOIN menu_items m ON m.id = oi.item_id
+JOIN restaurants r ON r.id = m.restaurant_id;
 
 SELECT 
-	b.title,
-	c.name
-FROM books b
-JOIN books_categories bc ON b.id = bc.book_id
-JOIN categories c ON c.id = bc.category_id;
+	o.id AS order_id,
+	m.item_name AS item,
+	m.price * oi.quantity AS price_to_item
+FROM orders o
+JOIN order_items oi ON oi.order_id = o.id
+JOIN menu_items m ON m.id = oi.item_id;
 
 SELECT 
-	b.title AS book,
-	c.name AS genre
-FROM books b
-JOIN books_categories bc ON b.id = bc.book_id
-JOIN categories c ON c.id = bc.category_id
-WHERE c.name = 'Программирование';
+	c.full_name AS client,
+	COUNT(*) AS total_orders
+FROM customers c
+JOIN orders o ON c.id = o.customer_id
+GROUP BY c.full_name
+ORDER BY total_orders DESC
+LIMIT(1);
 
 SELECT 
-	c.name AS genre,
-	COUNT(*)
-FROM categories c
-JOIN books_categories bc ON bc.category_id = c.id
-GROUP BY genre;
+	r.title,
+	SUM(m.price * oi.quantity) AS revenue
+FROM restaurants r
+JOIN menu_items m ON m.restaurant_id = r.id
+JOIN order_items oi ON oi.item_id = m.id
+GROUP BY r.title
+
 
 SELECT 
-	c.name AS genre,
-	AVG(b.price) AS avg
-FROM categories c
-JOIN books_categories bc ON bc.category_id = c.id
-JOIN books b ON bc.book_id = b.id
-GROUP BY genre;
-
-SELECT 
-	b.title AS book,
-	COUNT(*) AS total_genre
-FROM books b
-JOIN books_categories bc ON bc.book_id = b.id
-JOIN categories c ON bc.category_id = c.id
-GROUP BY book
-HAVING COUNT(*) > 1;
+	r.title, 
+	AVG(m.price * oi.quantity) AS average_check
+FROM restaurants r
+JOIN menu_items m ON m.restaurant_id = r.id
+JOIN order_items oi ON oi.item_id = m.id
+GROUP BY title
+HAVING AVG(m.price * oi.quantity) >= 500.00;
