@@ -1,41 +1,46 @@
-CREATE TABLE restaurants (
-id SERIAL PRIMARY KEY,
-name VARCHAR(100) NOT NULL,
-address TEXT,
-rating NUMERIC(2,1) CHECK (rating>1.0 AND rating<=5.0),
-category VARCHAR(50)
+-- Рестораны
+CREATE TABLE restaurants(
+	id SERIAL PRIMARY KEY,
+	title VARCHAR(100) NOT NULL,
+	address TEXT,
+	category VARCHAR(50),
+	rating NUMERIC(2, 1) CHECK (rating >= 1.0 AND rating <= 5.0)
 );
 
-CREATE TABLE menu_items (
-id SERIAL PRIMARY KEY,
-restaurant_id INTEGER REFERENCES restaurants(id) ON DELETE CASCADE,
-item_name VARCHAR(100) NOT NULL,
-price NUMERIC(10,2) NOT NULL CHECK (price > 0),
-is_available BOOLEAN DEFAULT TRUE
+-- список блюд
+CREATE TABLE menu_items(
+	id SERIAL PRIMARY KEY,
+	item_name VARCHAR(100) NOT NULL,
+	restaurant_id INTEGER REFERENCES restaurants(id) ON DELETE CASCADE,
+	price NUMERIC(8, 2) CHECK (price > 0.0) NOT NULL,
+	is_available BOOLEAN DEFAULT TRUE
 );
 
-CREATE TABLE customers (
-id SERIAL PRIMARY KEY,
-full_name VARCHAR(100) NOT NULL,
-email VARCHAR(100) UNIQUE NOT NULL,
-registrarion_date DATE DEFAULT CURRENT_DATE
+Клиенты
+CREATE TABLE customers(
+	id SERIAL PRIMARY KEY,
+	full_name VARCHAR(100) NOT NULL,
+	email VARCHAR(150) NOT NULL,
+	registtration_date DATE DEFAULT CURRENT_DATE
 );
 
+-- Шапка заказа
 CREATE TABLE orders(
-id SERIAL PRIMARY KEY,
-customer_id INTEGER REFERENCES customers(id) ON DELETE CASCADE,
-order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-status VARCHAR(20) DEFAULT 'Принят'
+	id SERIAL PRIMARY KEY,
+	customer_id INTEGER REFERENCES customers(id) ON DELETE CASCADE,
+	order_date DATE DEFAULT CURRENT_DATE,
+	status VARCHAR(30) DEFAULT 'Принят'
 );
 
-CREATE TABLE order_items (
-order_id INTEGER REFERENCES customers(id) ON DELETE CASCADE,
-item_id INTEGER REFERENCES menu_items(id) ON DELETE CASCADE,
-quantity INTEGER NOT NULL CHECK (quantity > 0),
-PRIMARY KEY (order_id, item_id)
+-- Связующая таблица, объединяет блюда и заказы
+CREATE TABLE order_items(
+	order_id INTEGER REFERENCES orders(id) ON DELETE CASCADE,
+	item_id INTEGER REFERENCES menu_items(id),
+	quantity INTEGER CHECK(quantity > 0),
+	PRIMARY KEY(item_id, order_id)
 );
 
-
+-- Наполнение данными
 INSERT INTO restaurants(title, address, category, rating)
 VALUES
 ('Крошка Картошка', 'г. Брянск, ул. Малинина, д. 16', 'Русская', 4.5),
@@ -76,16 +81,17 @@ VALUES
 ('Бифштекс-Бургер', 5, 280, TRUE),
 ('Фишбургер', 5, 89, FALSE);
 
+
 INSERT INTO customers(full_name, email, registtration_date)
 VALUES
-('Кирюхин Александр Петрович', 'KAP@mail.com', '2020-09-22'),
-('Кирюхина Наталья Владимировна', 'KNV@mail.com', '2021-11-11'),
-('Азарова Мария Федоровна', 'AMI@mail.com', '2025-01-19'),
-('Азаров Михаил Иванович', 'AMI', CURRENT_DATE),
-('Захарова Татьяна Александровна', 'ZTA@mail.com', '2026-02-14');
-('Захаров Юрий Викторович', 'ZUV@mail.com', '2023-12-19'),
-('Захарова Наталия Михайловна', 'ZNT@mail.com', '2017-01-15'),
-('Захаров Дмитрий Юрьевич', 'ZDU@mail.com', CURRENT_DATE);
+('Петров Игорь Геннадьевич', 'petrushka@mail.com', '2020-09-22'),
+('Сидорова Мария Ивановна', 'mashka@mail.com', '2021-11-11'),
+('Маришин Василий Владиславович', 'vaskamarishin@mail.com', '2025-01-19'),
+('Сундуков Александр Олегович', 'saenduksashs@mail.com', CURRENT_DATE),
+('Меньшев Игорь Трофимович', 'bolshemenhse@mail.com', '2026-02-14');
+('Метелин Игорь Федорович', 'igorysik228@mail.com', '2023-12-19'),
+('Зима Олег Яковлевич', 'winter@mail.com', '2017-01-15'),
+('Дроздова Марина Игоревна', 'drozdmara@mail.com', CURRENT_DATE);
 
 INSERT INTO orders (customer_id, order_date, status)
 VALUES
