@@ -1,90 +1,105 @@
-import psycopg2
-
 DB_CONFIG = {
-    'db_name': 'food_delivery_pro',
-    'user': 'postgres',
-    'password': 'Qweasdzx12qq',
-    'host': '127.0.0.1',
-    'port': '5432'
+    "dbname": "food_delivery_pro",
+    "user": "postgres",
+    "password": "Qweasdzx12qq",
+    "host": "127.0.0.1",
+    "port": "5432"
 }
 
-print('=== ДОБРО ПОЖАЛОВАТЬ В ТЕРМИНАЛ КАССИРА ===')
+conn = None
 
 try:
     conn = psycopg2.connect(**DB_CONFIG)
     cursor = conn.cursor()
+    print("Успешное подключение к БД!")
 
-    # ПОИСК КЛИЕНТА
-    email = input('Введите email клиента: ').strip()
-
-    cursor.execute('SELECT id, full_name FROM customers WHERE email = %s', (email,))
-    user_record = cursor.fetchone()
-
-    if user_record:
-        client_id = user_record[0]
-        client_name = user_record[1]
-        print(f'Рады снова видеть, {client_name}')
-    else:
-        print('Клиент не найден. Давайте зарегистрируем.')
-        client_name = input('Введите ФИО клиента: ').strip()
-
-        cursor.execute(
-            'INSERT INTO customers (full_name, email) VALUES (%s, %s) RETURNING id;',
-            (client_name, email)
-        )
-        client_id = cursor.fetchone()[0]
-        print(f'Клиент {client_name} успешно зарегистрирован (ID: {client_id}).')
-
-
-    # СОЗДАНИЕ КЛИЕНТА
-    cursor.execute(
-        'INSERT INTO orders (customer_id, status) VALUES (%s, "Принят") RETURNING id;',
-        (client_id,)
-    )
-    order_id = cursor.fetchone()[0]
-    print(f"\nОткрыт заказ №{order_id}, начинаем добавлять блюда.")
-
+    # Запускаем бесконечное меню
     while True:
-        item_id_input = input("\nВведите ID блюда (или 0 чтобы пробить чек):")
+        print("\n=== ПАНЕЛЬ АДМИНИСТРАТОРА ===")
+        print("1. Показать меню ресторана")
+        print("2. Массовое изменение цен")
+        print("3. Управление стоп-листом")
+        print("0. Выход")
 
-        if item_id_input == '0':
+        choice = input("Выберите действие (0-3): ").strip()
+
+        if choice == '0':
+            print("До свидания!")
             break
-        item_id = int(item_id_input)
-        quantity = int(("ВВедите кол-во порций:"))
+        elif choice == '1':
+            rest_id = input("Введите ID ресторана: ")
+            sql = "SELECT item_name, price, is_available FROM menu_items WHERE restaurant_id = %s ORDER BY id;"
+            cursor.execute(sql, (rest_id,))
+            items = cursor.fetchall()
 
-        cursor.execute(
-            "INSERT INTO order_items (order_id,item_id,quantity) VALUES (%s,%s,%s,);",
-            (order_id,item_id,quantity)
-        )
+            if not items:
+                print("Блюд не найдено!")
+                continue
 
-        print (f"-> Добавлено: Блюдо ID{item_id}, {quantity} шт.")
+            print(f"\n--- МЕНЮ (Ресторан ID {rest_id}) ---")
+            for row in items:
+                name, price, available = row[0], row[1], row[2]
+                status = "" if available else "[НЕТ В НАЛИЧИИ]"
+                print(f"- {name:<15} | {price} руб. {status}")
 
-        conn. commit()
-        print("\n[успех] Заказ успешно сохранен в базе данных!")
+        elif choice == '2':
+            rest_id = input("Введите ID ресторана: ")
+            percent = float(input("Процент наценки: "))
+            # 15% = 1.15
+            multiplier = 1 + (percent / 100)
 
-        print("\n" + "=" * 50)
-        print(f"Чек заказа №{order_id}")
-        print(f"Клиент: {client_name}" ({email}))
-        print("-" * 40)
+            # Достаем текущие цены
+            sql_select = "SELECT id, item_name, price FROM menu_items WHERE restaurant_id = %s AND is_available = TRUE;"
+            cursor.execute(sql_select, (rest_id,))
+            items = cursor.fetchall()
 
-        receipt_query = 
+            if not items:
+                print("Нет доступных блюд.")
+                continue
 
-        SELECT m.item_name, oi.quantity, (oi.quantity * m.price) as total_price
-        FROM order_items order_id
-        JOIN menu_items m ON oi_item_id = m.id
-        WHERE oi.order_id = %s
+            # Предпросмотр
+            print("\n--- ПРЕДВАРИТЕЛЬНЫЙ ПРОСМОТР ---")
+            for row in items:
+                item_id, name, old_price = row[0], row[1], float(row[2])
+                new_price = round(old_price * multiplier, 2)
+                print(f"{name:<15} | {old_price} ---> {new_price} руб.")
 
-    except psycopg2.Error as db_error:
-    print(f"\n[Критическая ошибка БД] Транзакция прервана: {db_error}")
+            # Запрашиваем разрешение
+            confirm = input("\nПрименить изменения в базе? (Y/N): ").strip().upper()
+
+            if confirm == "Y":
+                sql_update = """
+                    UPDATE menu_items
+                    SET price = price * %s
+                    WHERE restaurant_id = %s AND is_available = TRUE;
+                """
+                cursor.execute(sql_update, (multiplier, rest_id))
+                conn.commit()
+                print(f"[УСПЕХ] Цены обновлены у {cursor.rowcount} блюд!")
+            else:
+                print("[ОТМЕНА] Ничего не меняли.")
+
+        elif choice == '3':
+            item_id = input("Введите ID блюда для стоп-листа: ")
+
+            sql = "UPDATE menu_items SET is_available = FALSE WHERE id = %s;"
+            cursor.execute(sql, (item_id,))
+
+            if cursor.rowcount > 0:
+                conn.commit()
+                print(f"[УСПЕХ] Блюдо ID {item_id} добавлено в стоп-лист.")
+            else:
+                conn.rollback()
+                print(f"[ОШИБКА] Блюдо с ID {item_id} не найдено.")
+        else:
+            print("Ошибка: введите цифру от 0 до 3.")
+
+except psycopg2.Error as e:
+    print(f"\n[КРИТИЧЕСКАЯ ОШИБКА БД]: {e}")
     if conn:
         conn.rollback()
-        print("Изменения отменены")
-    except ValueError:
-print("\n[ошибка ввода] Вы ввели буквы вместо цифр! Программа Завершена.")
-if conn:
-    conn.rollback()
+
 finally:
-    if 'conn' in locals() and conn:
-    cursor.close()
-conn.close()
-print("сеанс работы с терминалом завершен.")
+    if conn:
+        conn.close()
+        print("Соединение с базой закрыто.")
